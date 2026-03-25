@@ -1,0 +1,24 @@
+# --- FRONTEND (Next.js / Node) ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.env*.local
+frontend/.vercel
+
+# --- BACKEND (Django / Python) ---
+web_server/venv/
+web_server/.venv/
+web_server/env/
+web_server/__pycache__/
+web_server/*.py[cod]
+web_server/*$py.class
+web_server/.env
+web_server/db.sqlite3
+web_server/media/
+
+# --- GENERAL ---
+.DS_Store
+.vscode/
+.idea/
+*.log
