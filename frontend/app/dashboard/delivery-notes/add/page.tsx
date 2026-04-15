@@ -18,6 +18,7 @@ export default function AddDeliveryNotePage() {
   const [tickets, setTickets] = useState([]);
   const [allVehicles, setAllVehicles] = useState<any[]>([]); // Todos los vehículos
   const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]); // Solo del proveedor
+  const [addresses, setAddresses] = useState<any[]>([]); // Direcciones del proveedor
 
   // Estados para la lógica del formulario
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -27,12 +28,19 @@ export default function AddDeliveryNotePage() {
     truck_plate: '',
     truck_color: ''
   });
+  const [startAddressData, setStartAddressData] = useState({
+    start_address: '',
+    start_city: '',
+    start_state: ''
+  });
+  
+  let selectedAddressId = false;
 
   useEffect(() => {
     Promise.all([
         fetchData('providers/'),
-        fetchData('tickets/get_tickets_without_delivery_note/')
-    ]).then(([provs, ticks]) => {
+        // fetchData('tickets/get_tickets_without_delivery_note/')
+    ]).then(([provs]) => {
         // Para Proveedores:
         setProviders(provs.map((p: any) => ({
         id: p.id,
@@ -40,18 +48,18 @@ export default function AddDeliveryNotePage() {
         })));
 
         // Para Tickets: Mapeamos ticket_number a 'name'
-        const formattedTickets = ticks.map((t: any) => ({
-        id: t.id,
-        name: `Ticket #${t.ticket_number}` // Esto es lo que aparecerá en el select
-        }));
+        // const formattedTickets = ticks.map((t: any) => ({
+        // id: t.id,
+        // name: `Ticket #${t.ticket_number}` // Esto es lo que aparecerá en el select
+        // }));
 
-        setTickets(formattedTickets);
+        // setTickets(formattedTickets);
     });
     }, []);
 
-  // Lógica: Cuando cambia el proveedor, filtramos vehículos
+  // Lógica: Cuando cambia el proveedor, filtramos vehículos y las direcciones de origen 
   useEffect(() => {
-    const updateVehicles = async () => {
+    const updateProviderData = async () => {
       if (selectedProvider) {
         try {
           // Llamada al endpoint específico por ID
@@ -61,18 +69,30 @@ export default function AddDeliveryNotePage() {
             name: `${v.plate} - ${v.brand}`,
             fullData: v // Guardamos todo el objeto para el autocompletado
           })));
+
+          const addresses = await fetchData(`addresses/${selectedProvider}/get_address_by_provider_id/`);
+          setAddresses(addresses.map((a: any) => ({
+            id: a.id,
+            name: a.address,
+            fulldata: a
+          })));
+
         } catch (err) {
-          console.error("Error al obtener vehículos:", err);
+          console.error("Error al obtener vehículos o direcciones:", err);
           setFilteredVehicles([]);
+          setAddresses([]);
         }
       } else {
+        setVehicleData({ truck_brand: '', truck_model: '', truck_plate: '', truck_color: '' });
+        setStartAddressData({ start_address: '', start_city: '', start_state: '' });
+        selectedAddressId = false;
         setFilteredVehicles([]);
+        setAddresses([]);
       }
       // Limpiar campos de vehículo si cambia el proveedor
-      setVehicleData({ truck_brand: '', truck_model: '', truck_plate: '', truck_color: '' });
     };
 
-    updateVehicles();
+    updateProviderData();
   }, [selectedProvider]);
 
   const handleVehicleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -89,6 +109,25 @@ export default function AddDeliveryNotePage() {
       });
     }
   };
+
+  const handleStartAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const addressId = e.target.value;
+    const address = addresses.find((a: any) => a.id === parseInt(addressId));
+    
+    if (address?.fulldata) {
+      selectedAddressId = true;
+      console.log('hola', selectedAddressId);
+      const d = address.fulldata;
+      setStartAddressData({
+        start_address: d.address,
+        start_city: d.city,
+        start_state: d.state
+      });
+    }else{
+      selectedAddressId = false;
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -117,7 +156,7 @@ export default function AddDeliveryNotePage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* SECCIÓN 1: RELACIONES PRINCIPALES */}
           <div className="bg-card p-6 rounded-lg border border-border grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormSelect label="Ticket" name="ticket" data={tickets} required />
+            {/* <FormSelect label="Ticket" name="ticket" data={tickets} required /> */}
             
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium">Proveedor</label>
@@ -167,11 +206,46 @@ export default function AddDeliveryNotePage() {
           <div className="bg-card p-6 rounded-lg border border-border grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
                 <h3 className="font-bold border-b border-border pb-1">Origen</h3>
-                <FormInput label="Dirección" name="start_address" required />
-                <div className="grid grid-cols-2 gap-2">
-                    <FormInput label="Ciudad" name="start_city" required />
-                    <FormInput label="Estado" name="start_state" required />
-                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Dirección del Proveedor</label>
+                  <select 
+                      disabled={!selectedProvider || (selectedProvider !== "" && addresses.length === 0)}
+                      className="bg-background border border-border rounded-md p-2 text-black h-[42px] disabled:opacity-50"
+                      onChange={handleStartAddressChange}
+                  >
+                      <option value="">Seleccione Dirección</option>
+                      {addresses.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                  {selectedProvider && addresses.length === 0 && (
+                      <span className="text-red-400 text-xs mt-1 animate-pulse">
+                      * Este proveedor no tiene direcciones registradas.
+                      </span>
+                  )}
+              </div>
+
+              {/* terminar de acomodar el selector */}
+              
+                {selectedAddressId ?
+                  (<>
+                    <p>autocomplete</p>
+                    <FormInput label="Dirección" name="start_address" required value={startAddressData.start_address} readOnly/>
+                    <div className="grid grid-cols-2 gap-2">
+                        <FormInput label="Ciudad" name="start_city" required value={startAddressData.start_city} readOnly/>
+                        <FormInput label="Estado" name="start_state" required value={startAddressData.start_state} readOnly/>
+                    </div>
+                  </>
+
+                  ) : (
+                  <>
+                    <p>no autocomplete</p>
+                    <FormInput label="Dirección" name="start_address" required/>
+                    <div className="grid grid-cols-2 gap-2">
+                        <FormInput label="Ciudad" name="start_city" required/>
+                        <FormInput label="Estado" name="start_state" required/>
+                    </div>
+                  </>
+                )}
                 <FormInput label="Fecha/Hora Salida" name="startdate" type="date" required />
             </div>
 

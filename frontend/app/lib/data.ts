@@ -9,6 +9,8 @@
 // } from './definitions';
 // import { formatCurrency } from './utils';
 
+import { blob } from "stream/consumers";
+
 //const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 
@@ -23,6 +25,37 @@ export async function fetchData(route: string ) {
   catch (error) {
     console.error('Fetch Error:', error);
     throw new Error('Failed to fetch data.');
+  }
+}
+
+export async function donwloadPDF(route: string, ids: number[]) {
+  try{
+    const baseUrl = 'http://localhost:8000/api/'
+    const url = baseUrl + route + `?ids=${ids.join(',')}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log(url);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error en la respuesta del backend:', errorData);
+      throw new Error('Error al descargar el PDF.');
+    }
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', 'notas_de_entrega.pdf');
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  }catch (error) {
+    console.error('Error al descargar el PDF:', error);
+    throw new Error('Error al descargar el PDF.');
   }
 }
 

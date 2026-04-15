@@ -53,6 +53,16 @@ class AddressViewSet(viewsets.ModelViewSet):
             return JsonResponse(serializer.data, status=status.HTTP_200_OK)
         except Address.DoesNotExist:
             return JsonResponse({'error': 'Dirección no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['get'], url_path='get_address_by_provider_id')
+    def get_address_by_provider_id(self, request, pk=None):
+        try:
+            provider = Provider.objects.get(id=pk)
+            addresses = Address.objects.filter(provider=provider)
+            serializer = self.get_serializer(addresses, many=True)
+            return JsonResponse(serializer.data, safe=False, status=status.HTTP_200_OK)
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
     @csrf_exempt
     @action(detail=True, methods=['put', 'patch'], url_path='update_address')

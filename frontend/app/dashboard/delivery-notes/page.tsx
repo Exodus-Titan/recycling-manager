@@ -1,8 +1,9 @@
 import { lusitana } from "@/app/ui/fonts"
-import { fetchData } from "@/app/lib/data"
+import { fetchData, donwloadPDF } from "@/app/lib/data"
 import { DynamicTable } from '../../components/dynamic-table';
 import { Words_diccionary } from "@/app/lib/diccionary";
 import { AddButton } from "@/app/components/ui/add_button";
+import ExportPDF from "@/app/components/ui/download_button";
 import Link from "next/dist/client/link";
 
 
@@ -32,6 +33,11 @@ export default async function TableExamplePage() {
           <div>
             <DynamicTable data={sampleData} url="/dashboard/delivery-notes/" deleteAPIRoute="delivery-notes/"/>
           </div>
+        </div>
+        <div>
+          <ExportPDF ids={[1,2]}>
+              Exportar PDF
+          </ExportPDF>
         </div>
       </div>
     </div>
