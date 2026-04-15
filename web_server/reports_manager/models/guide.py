@@ -5,7 +5,8 @@ from .company import Company
 
 class Guide(models.Model):
     status = models.CharField(max_length=30)
-    date = models.DateField()
+    date = models.DateField() #Fecha de inicio
+    #crear un fecha de cierre como campo opcional 
     # Metadatos para control
     creation_date = models.DateTimeField(auto_now_add=True)
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
