@@ -8,3 +8,4 @@ from .material import MaterialViewSet
 from .provider import ProviderViewSet
 from .ticket import TicketViewSet
 from .ticket_item import TicketItemViewSet
+from .origin_address import OriginAddressViewSet

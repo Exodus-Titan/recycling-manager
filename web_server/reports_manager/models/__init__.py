@@ -8,5 +8,6 @@ from .company import Company
 from .guide import Guide
 from .affidavit import Affidavit
 from .delivery_notes import DeliveryNote
+from .origin_address import OriginAddress   
 
 

@@ -8,3 +8,4 @@ from .material import MaterialSerializer
 from .provider import ProviderSerializer
 from .ticket import TicketSerializer
 from .ticket_item import TicketItemSerializer
+from .origin_address import OriginAddressSerializer

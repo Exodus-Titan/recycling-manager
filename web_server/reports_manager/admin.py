@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Material, Ticket, TicketItem, Address, Provider, Vehicle, Company, Guide, Affidavit, DeliveryNote
+from .models import Material, Ticket, TicketItem, Address, Provider, Vehicle, Company, Guide, Affidavit, DeliveryNote, OriginAddress
 
 # Inlines existentes
 class ItemTicketInline(admin.TabularInline):
@@ -20,3 +20,4 @@ admin.site.register(Company)
 admin.site.register(Guide)
 admin.site.register(Affidavit)
 admin.site.register(DeliveryNote)
+admin.site.register(OriginAddress)

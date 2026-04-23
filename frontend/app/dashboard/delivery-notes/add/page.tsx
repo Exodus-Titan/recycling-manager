@@ -19,6 +19,7 @@ export default function AddDeliveryNotePage() {
   const [allVehicles, setAllVehicles] = useState<any[]>([]); // Todos los vehículos
   const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]); // Solo del proveedor
   const [addresses, setAddresses] = useState<any[]>([]); // Direcciones del proveedor
+  const [endAddresses, setEndAddresses] = useState<any[]>([]); // Direcciones de destino
 
   // Estados para la lógica del formulario
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -33,18 +34,31 @@ export default function AddDeliveryNotePage() {
     start_city: '',
     start_state: ''
   });
+  const [endAddressData, setEndAddressData] = useState({
+    end_address: '',
+    end_city: '',
+    end_state: ''
+  });
   
-  let selectedAddressId = false;
+  const [isAddressSelected, setIsAddressSelected] = useState(false);
+  const [isEndAddressSelected, setIsEndAddressSelected] = useState(false);
 
   useEffect(() => {
     Promise.all([
         fetchData('providers/'),
+        fetchData('origin-addresses/get_addresses/')
         // fetchData('tickets/get_tickets_without_delivery_note/')
-    ]).then(([provs]) => {
+    ]).then(([provs, addresses]) => {
         // Para Proveedores:
         setProviders(provs.map((p: any) => ({
         id: p.id,
         name: p.name // O el campo que uses para el nombre
+        })));
+
+        setEndAddresses(addresses.map((a: any) => ({
+          id: a.id,
+          name: a.address,
+          fullData: a
         })));
 
         // Para Tickets: Mapeamos ticket_number a 'name'
@@ -85,7 +99,7 @@ export default function AddDeliveryNotePage() {
       } else {
         setVehicleData({ truck_brand: '', truck_model: '', truck_plate: '', truck_color: '' });
         setStartAddressData({ start_address: '', start_city: '', start_state: '' });
-        selectedAddressId = false;
+        setIsAddressSelected(false);
         setFilteredVehicles([]);
         setAddresses([]);
       }
@@ -115,8 +129,7 @@ export default function AddDeliveryNotePage() {
     const address = addresses.find((a: any) => a.id === parseInt(addressId));
     
     if (address?.fulldata) {
-      selectedAddressId = true;
-      console.log('hola', selectedAddressId);
+      setIsAddressSelected(true);
       const d = address.fulldata;
       setStartAddressData({
         start_address: d.address,
@@ -124,7 +137,24 @@ export default function AddDeliveryNotePage() {
         start_state: d.state
       });
     }else{
-      selectedAddressId = false;
+      setIsAddressSelected(false);
+    }
+  };
+
+  const handleEndAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const addressId = e.target.value;
+    const address = endAddresses.find((a: any) => a.id === parseInt(addressId));
+    
+    if (address?.fullData) {
+      setIsEndAddressSelected(true);
+      const d = address.fullData;
+      setEndAddressData({
+        end_address: d.address,
+        end_city: d.city,
+        end_state: d.state
+      });
+    }else{
+      setIsEndAddressSelected(false);
     }
   };
 
@@ -223,40 +253,66 @@ export default function AddDeliveryNotePage() {
                       </span>
                   )}
               </div>
-
-              {/* terminar de acomodar el selector */}
               
-                {selectedAddressId ?
-                  (<>
-                    <p>autocomplete</p>
+                {isAddressSelected ?
+                  (<div key="address-autocomplete">
                     <FormInput label="Dirección" name="start_address" required value={startAddressData.start_address} readOnly/>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 pt-2">
                         <FormInput label="Ciudad" name="start_city" required value={startAddressData.start_city} readOnly/>
                         <FormInput label="Estado" name="start_state" required value={startAddressData.start_state} readOnly/>
                     </div>
-                  </>
+                  </div>
 
                   ) : (
-                  <>
-                    <p>no autocomplete</p>
+                  <div key="address-manual">
                     <FormInput label="Dirección" name="start_address" required/>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 pt-2">
                         <FormInput label="Ciudad" name="start_city" required/>
                         <FormInput label="Estado" name="start_state" required/>
                     </div>
-                  </>
+                  </div>
                 )}
                 <FormInput label="Fecha/Hora Salida" name="startdate" type="date" required />
             </div>
 
+
             <div className="space-y-4">
-                <h3 className="font-bold border-b border-border pb-1">Destino</h3>
-                <FormInput label="Dirección" name="end_address" required />
-                <div className="grid grid-cols-2 gap-2">
-                    <FormInput label="Ciudad" name="end_city" required />
-                    <FormInput label="Estado" name="end_state" required />
-                </div>
-                <FormInput label="Fecha/Hora Llegada" name="enddate" type="date" required />
+              <h3 className="font-bold border-b border-border pb-1">Destino</h3>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Dirección de Destino</label>
+                <select 
+                    className="bg-background border border-border rounded-md p-2 text-black h-[42px] disabled:opacity-50"
+                    onChange={handleEndAddressChange}
+                >
+                    <option value="">Seleccione Dirección</option>
+                    {endAddresses.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-4">
+                  {isEndAddressSelected ?
+                    (
+                    <div key="end-address-autocomplete">
+                      <FormInput label="Dirección" name="end_address" required value={endAddressData.end_address} readOnly/>
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                          <FormInput label="Ciudad" name="end_city" required value={endAddressData.end_city} readOnly/>
+                          <FormInput label="Estado" name="end_state" required value={endAddressData.end_state} readOnly/>
+                      </div>
+                    </div>
+                    )
+                    :
+                    (
+                    <div key="end-address-manual">  
+                      <FormInput label="Dirección" name="end_address" required />
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                          <FormInput label="Ciudad" name="end_city" required />
+                          <FormInput label="Estado" name="end_state" required />
+                      </div>
+                    </div>
+                    )
+                  }
+                  <FormInput label="Fecha/Hora Llegada" name="enddate" type="date" required />
+              </div>
             </div>
           </div>
 

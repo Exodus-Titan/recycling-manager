@@ -30,6 +30,7 @@ router.register(r'materials', views.MaterialViewSet)
 router.register(r'providers', views.ProviderViewSet)
 router.register(r'tickets', views.TicketViewSet)
 router.register(r'ticket-items', views.TicketItemViewSet)
+router.register(r'origin-addresses', views.OriginAddressViewSet)
 
 
 urlpatterns = [
