@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { lusitana } from "@/app/ui/fonts"
-import { postData } from "@/app/lib/data"
+import { postData, postImage } from "@/app/lib/data"
 import { Words_diccionary } from "@/app/lib/diccionary";
 import { FormInput } from '@/app/components/ui/text_form';
 import { AddButton } from '@/app/components/ui/add_button';
@@ -12,6 +12,18 @@ export default function AddProviderPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Función para capturar la imagen y crear la vista previa
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+      // Creamos una URL temporal para que el navegador pueda mostrar la imagen
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,6 +42,14 @@ export default function AddProviderPage() {
           console.error('Error del backend:', result.error);
           return;
         }else{
+
+          const providerId = result.id;
+          const imageUpload = await postImage(providerId, 'providers/upload_signature/', selectedImage);
+          if (imageUpload && imageUpload.error) {
+            setError(imageUpload.error);
+            console.error('Error al subir la imagen:', imageUpload.error);
+            return;
+          }
           console.log('Proveedor guardado exitosamente:', result);
           router.push('/dashboard/providers');
         }
@@ -83,6 +103,31 @@ export default function AddProviderPage() {
           placeholder="12345678" 
           required 
         />
+
+        {/* Sección de Imagen/Firma */}
+        <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+          <label className="text-sm font-medium">Firma del Proveedor</label>
+          
+          <div className="flex flex-col items-center gap-4 border-2 border-dashed border-border p-4 rounded-lg">
+            {/* Contenedor de Vista Previa */}
+            <div className="w-40 h-40 bg-background rounded-md flex items-center justify-center overflow-hidden border border-border">
+              {previewUrl ? (
+                <img src={previewUrl} alt="Vista previa" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-gray-500 text-xs text-center p-2">Sin foto seleccionada</span>
+              )}
+            </div>
+
+            {/* Input de archivo oculto o estilizado */}
+            <input 
+              type="file" 
+              name="signature" // El nombre debe coincidir con el campo en Django
+              accept="image/*" 
+              onChange={handleImageChange}
+              className="text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+            />
+          </div>
+        </div>
 
         <div className="flex justify-end pt-4">
           <AddButton type="submit">

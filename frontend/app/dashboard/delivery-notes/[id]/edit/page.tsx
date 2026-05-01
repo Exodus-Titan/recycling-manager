@@ -7,6 +7,8 @@ import { FormInput } from '@/app/components/ui/text_form';
 import { FormSelect } from '@/app/components/ui/selector_form';
 import { AddButton } from '@/app/components/ui/add_button';
 import { useRouter, useParams } from 'next/navigation';
+import { TicketItemRow } from '../../../../components/ui/ticket-item-row';
+import { Plus } from 'lucide-react';
 
 export default function EditDeliveryNotePage() {
 
@@ -26,6 +28,8 @@ export default function EditDeliveryNotePage() {
   const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]); // Direcciones del proveedor
   const [endAddresses, setEndAddresses] = useState<any[]>([]); // Direcciones de destino
+  const [materials, setMaterials] = useState([]);
+  const [items, setItems] = useState<any[]>([]);
 
   // Estado del formulario
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -57,26 +61,42 @@ export default function EditDeliveryNotePage() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [provs, note, addressesData] = await Promise.all([
+        const [provs, note, addressesData, mats] = await Promise.all([
           fetchData('providers/'),
           fetchData(`delivery-notes/${id}/`),
-          fetchData('origin-addresses/get_addresses/') // Traemos las direcciones de destino
+          fetchData('origin-addresses/get_addresses/'), // Traemos las direcciones de destino
+          fetchData('materials/') // Traemos los materiales disponibles
         ]);
         
-        const [ticks, actualTicket] = await Promise.all([
+        const [ticks] = await Promise.all([
           fetchData('tickets/get_tickets_without_delivery_note/'),
-          fetchData(`tickets/${note.ticket}/get_actual_ticket/`)
         ]);
 
-        const allAvailableTickets = [actualTicket[0], ...ticks];
+        var allAvailableTickets = [];
+
+        if (note.ticket){
+          const actualTicket = await Promise.resolve(fetchData(`tickets/${note.ticket}/get_actual_ticket/`));
+            allAvailableTickets = [actualTicket[0], ...ticks];
+        }else{
+            allAvailableTickets = ticks;
+        }
+
+        
         
         setProviders(provs.map((p: any) => ({ id: p.id, name: p.name })));
         setTickets(allAvailableTickets.map((t: any) => ({ id: t.id, name: `Ticket #${t.ticket_number}` })));
         setEndAddresses(addressesData.map((a: any) => ({ id: a.id, name: a.address, fullData: a })));
-        
+        setMaterials(mats);
+
         // Seteamos la nota y el proveedor seleccionado
         setFormData(note);
         setSelectedProvider(note.provider.toString());
+        if (note.items && note.items.length > 0) {
+          setItems(note.items);
+        } else {
+          // Si no traía items, ponemos uno en blanco por defecto
+          setItems([{ material: '', amount: '', unit_type: 'KG' }]);
+        }
         
         // Llenamos los campos de vehículo con lo que ya tiene la nota
         setVehicleData({
@@ -141,6 +161,24 @@ export default function EditDeliveryNotePage() {
     }
   };
 
+  const handleItemChange = (index: number, field: string, value: string) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    // Los nuevos ítems no tienen ID
+    setItems([...items, { material: '', amount: '', unit_type: 'KG' }]);
+  };
+  
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+
   const handleStartAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const addressId = e.target.value;
     const address = addresses.find((a: any) => a.id === parseInt(addressId));
@@ -181,7 +219,19 @@ export default function EditDeliveryNotePage() {
     setLoading(true);
     
     const form = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+    const rawData = Object.fromEntries(form.entries());
+
+    // 1. Creamos un nuevo payload filtrando los inputs dinámicos de los materiales
+    // para que no ensucien el JSON principal.
+    const payload: any = {};
+    for (const key in rawData) {
+      if (!key.startsWith('item_')) {
+        payload[key] = rawData[key];
+      }
+    }
+
+    // 2. Agregamos el array de objetos directamente desde tu estado reactivo
+    payload.items = items;
 
     try {
       const result = await patchData(`delivery-notes/${id}/update_delivery_note/`, payload);
@@ -202,13 +252,17 @@ export default function EditDeliveryNotePage() {
         <h1 className="text-3xl font-bold">Editar Nota de Entrega #{id}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          
           <div className="bg-card p-6 rounded-lg border border-border grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <FormInput label="Número de Nota de Entrega" name="delivery_note_number" required defaultValue={formData.delivery_note_number} />
+
             <FormSelect 
                 label="Ticket" 
                 name="ticket" 
                 data={tickets} 
-                defaultValue={formData.ticket} 
-                required 
+                defaultValue={formData.ticket}  
             />
             
             <div className="flex flex-col gap-2">
@@ -245,6 +299,29 @@ export default function EditDeliveryNotePage() {
                 <FormInput label="Modelo" name="truck_model" value={vehicleData.truck_model} readOnly />
                 <FormInput label="Placa" name="truck_plate" value={vehicleData.truck_plate} readOnly />
                 <FormInput label="Color" name="truck_color" value={vehicleData.truck_color} readOnly />
+            </div>
+          </div>
+
+          {/* Listado dinámico de materiales */}
+          <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-2">
+              <h2 className="text-xl font-semibold">Desglose de Materiales</h2>
+              <button type="button" onClick={addItem} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm transition-all shadow-lg">
+                <Plus size={18} /> Añadir Fila
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <TicketItemRow 
+                  key={item.id || index} // Usamos el ID de la BD si existe
+                  index={index}
+                  item={item}
+                  materials={materials}
+                  onChange={handleItemChange}
+                  onRemove={removeItem}
+                />
+              ))}
             </div>
           </div>
 

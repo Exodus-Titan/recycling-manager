@@ -8,7 +8,7 @@ from .provider import Provider
 
 class DeliveryNote(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, null=True, blank=True)
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
     truck_brand = models.CharField(max_length=50)
     truck_model = models.CharField(max_length=50)
@@ -26,6 +26,8 @@ class DeliveryNote(models.Model):
 
     startdate = models.DateTimeField()
     enddate = models.DateTimeField()
+
+    delivery_note_number = models.CharField(max_length=40, unique=True, verbose_name="Número de Nota de Entrega", null=True, blank=True)
 
     def __str__(self):
         return f"Delivery Note {self.id} - {self.company.name}"

@@ -1,10 +1,17 @@
+from fileinput import filename
+
 from django.db import models
 from django.core.validators import MinValueValidator
 
 #Chofer
 class Provider(models.Model):
+
+    def provider_signature_path(instance, filename):
+        return f'providers/{instance.id}/signatures/{filename}'
+
     name = models.CharField(max_length=100)
     id_number = models.CharField(max_length=20)
+    signature = models.ImageField(upload_to=provider_signature_path, null=True, blank=True)
     #signature 
     #implementacion futura para fotos de las firmas 
 

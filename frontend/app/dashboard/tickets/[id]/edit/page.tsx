@@ -23,7 +23,7 @@ export default function EditTicketPage() {
   
   // Los ítems se manejan en su propio estado para permitir la edición dinámica
   const [items, setItems] = useState<any[]>([]);
-   const [providers, setProviders] = useState([]);
+  const [providers, setProviders] = useState([]);
 
   useEffect(() => {
     const loadInitialData = async () => {

@@ -4,6 +4,10 @@ from .provider import Provider
 
 
 class Ticket(models.Model):
+
+    def ticket_photo_path(instance, filename):
+        return f'images/tickets/{instance.id}/photo/{filename}'
+
     """
     Representa la cabecera de la Nota de Recibo.
     """
@@ -15,7 +19,7 @@ class Ticket(models.Model):
     
     # Imagen del ticket para respaldo
     # Comentado para implementacion posterior
-    #foto_ticket = models.ImageField(upload_to='tickets/%Y/%m/%d/', null=True, blank=True)
+    photo = models.ImageField(upload_to=ticket_photo_path, null=True, blank=True)
     
     # Datos de totales al pie de la nota
     total_weight = models.DecimalField(max_digits=10, decimal_places=2, help_text="Suma total de pesos")

@@ -43,6 +43,61 @@ class ProviderViewSet(viewsets.ModelViewSet):
             return JsonResponse({'error': message}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    @action(detail=False, methods=['post'])
+    def upload_signature(self, request):
+        try:
+            provider = Provider.objects.get(id=request.data.get('provider_id'))
+            signature_file = request.FILES.get('signature')
+
+            if not provider:
+                return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+            if not signature_file:
+                return JsonResponse({'error': 'No se ha proporcionado ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            img_name = provider.name.replace(" ", "_").lower() + "_" + provider.id_number + "_signature.png"
+
+            provider.signature.save(img_name, signature_file)
+            provider.save()
+
+            return JsonResponse({'message': 'Firma subida con éxito'}, status=status.HTTP_200_OK)
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=False, methods=['patch'])
+    def update_signature(self, request):
+        try:
+            provider = Provider.objects.get(id=request.data.get('provider_id'))
+            signature_file = request.FILES.get('signature')
+
+            if not provider:
+                return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+            if not signature_file:
+                return JsonResponse({'error': 'No se ha proporcionado ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Eliminar la firma anterior si existe
+            if provider.signature:
+                provider.signature.delete()
+
+            img_name = provider.name.replace(" ", "_").lower() + "_" + provider.id_number + "_signature.png"
+            provider.signature.save(img_name, signature_file)
+            provider.save()
+
+            return JsonResponse({'message': 'Firma actualizada con éxito'}, status=status.HTTP_200_OK)
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(detail=True, methods=['get'], url_path='get_signature')
+    def get_signature(self, request, pk=None):
+        try:
+            provider = Provider.objects.get(id=pk)
+            print(provider.signature.url if provider.signature else "No hay firma")  # Debug: Verificar la URL de la firma
+            return JsonResponse({'signature_url': provider.signature.url if provider.signature else None}, status=status.HTTP_200_OK)
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
     @csrf_exempt
     @action(detail=True, methods=['patch'])
@@ -75,6 +130,7 @@ class ProviderViewSet(viewsets.ModelViewSet):
     def delete_provider(self, request, pk=None):
         try:
             provider = Provider.objects.get(id=pk)
+            provider.signature.delete()
             provider.delete()
             return JsonResponse({'message': 'Proveedor eliminado con éxito'}, status=status.HTTP_200_OK)
         

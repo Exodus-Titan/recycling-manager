@@ -1,38 +1,29 @@
+import os
 import pandas as pd
+from datetime import datetime # <- Importamos datetime
 from fpdf import FPDF, FontFace
 
 class PDF(FPDF):
-
-    # data = {
-    #     'name': '',
-    #     'id_number': '',
-    #     'address': '',
-    #     'material': '',
-    #     'quantity': '',
-    #     'material_type': '',
-    #     'receptor_name': '',
-    #     'receptor_id_number': '',
-    #     'receptor_address': ''
-    # }
-
-    # def fill_data(self, data):
-    #     self.data['name'] = data.name
-    #     self.data['id_number'] = data.id_number
-    #     self.data['address'] = data.address
-    #     self.data['material'] = data.material
-    #     self.data['quantity'] = data.quantity
-    #     self.data['material_type'] = data.material_type
-    #     self.data['receptor_name'] = data.receptor_name
-    #     self.data['receptor_id_number'] = data.receptor_id_number
-    #     self.data['receptor_address'] = data.receptor_address
-    #     return data
         
     def page_body(self, data):
-
         self.add_page()
+        
+        # --- FECHA EN LA ESQUINA SUPERIOR DERECHA ---
+        # Obtenemos la fecha de hoy con el formato DD/MM/AAAA
+        fecha_actual = datetime.now().strftime("%d/%m/%Y")
+        
+        # Guardamos la posición Y inicial para que el título quede en la misma línea
+        y_inicial = self.get_y()
+        
+        self.set_font("helvetica", size=10)
+        # Imprimimos la fecha alineada a la derecha (align="R")
+        self.cell(0, 10, f"Fecha: {fecha_actual}", align="R")
+        
+        # Regresamos el cursor a la altura original para imprimir el título principal
+        self.set_y(y_inicial)
+        
         # 2. Título principal
         self.set_font("helvetica", style="B", size=12)
-        # new_x y new_y mueven el cursor a la siguiente línea después de escribir
         self.cell(0, 10, "NOTA DE ENTREGA N. 007614", align="C", new_x="LMARGIN", new_y="NEXT")
         self.ln(2) # Pequeño margen
 
@@ -41,13 +32,10 @@ class PDF(FPDF):
         self.set_font("helvetica", size=9)
 
         # --- TABLA 1: DATOS DEL GENERADOR ---
-        # Usamos col_widths en porcentajes (30% y 70%) para definir el ancho
         with self.table(col_widths=(30, 70), text_align="LEFT", padding=2) as table:
-            # Fila de encabezado
             row = table.row()
             row.cell("DATOS DEL GENERADOR DE DESECHOS", colspan=2, align="C", style=font_bold)
             
-            # Filas de datos
             row = table.row()
             row.cell("NOMBRE O RAZÓN SOCIAL", style=font_bold)
             row.cell(data['name'])
@@ -61,7 +49,6 @@ class PDF(FPDF):
             row.cell(data['address'])
 
         # --- TABLA 2: IDENTIFICACIÓN DE LOS DESECHOS ---
-        # Aquí dividimos en 4 columnas (25%, 45%, 15%, 15%)
         with self.table(col_widths=(25, 45, 15, 15), text_align="LEFT", padding=2) as table:
             row = table.row()
             row.cell("IDENTIFICACIÓN DE LOS DESECHOS", colspan=4, align="C", style=font_bold)
@@ -69,12 +56,11 @@ class PDF(FPDF):
             row = table.row()
             row.cell("MATERIAL", style=font_bold)
             row.cell(data['material'])
-            row.cell("CANTIDAD (Kg)", style=font_bold, align="C")
+            row.cell("CANTIDAD", style=font_bold, align="C")
             row.cell(data['quantity'], align="C")
 
             row = table.row()
             row.cell("TIPO DE MATERIAL", style=font_bold)
-            # colspan=3 hace que esta celda ocupe el resto del ancho de la tabla
             row.cell(data['material_type'], colspan=3)
 
         # --- TABLA 3: DATOS DEL RECEPTOR ---
@@ -95,7 +81,7 @@ class PDF(FPDF):
             row.cell(data['receptor_address'])
 
         # --- TEXTO LEGAL FINAL ---
-        self.ln(5) # Salto de línea antes del párrafo
+        self.ln(5)
         self.set_font("helvetica", size=10)
 
         texto_legal = (
@@ -106,19 +92,34 @@ class PDF(FPDF):
             "la dirección de destino."
         )
 
-        # multi_cell es ideal para párrafos largos porque hace el salto de línea automático
         self.multi_cell(0, 5, texto_legal)
         self.ln(5)
 
         # Línea de conformidad sin firmas
         self.cell(0, 5, "Quedamos conforme a lo declarado:", new_x="LMARGIN", new_y="NEXT")
+        self.ln(5)
+
+        # Parámetros de la firma
+        ancho_firma = 110
+        alto_firma = 55
+        x_centrado = (self.w - ancho_firma) / 2
+        y_actual = self.get_y() + 2
+
+        self.rect(x_centrado, y_actual, ancho_firma, alto_firma)
+
+        sig_path = data.get('signature_path')
+        if sig_path and os.path.exists(sig_path):
+            self.image(sig_path, x=x_centrado + 2, y=y_actual + 2, w=ancho_firma - 4, h=alto_firma - 4)
+        else:
+            self.set_xy(x_centrado, y_actual + (alto_firma/2) - 2)
+            self.cell(ancho_firma, 5, "FIRMA AQUÍ", align="C")
+
+        self.set_xy(0, y_actual + alto_firma + 2)
+        self.set_font("helvetica", "B", 8)
+        self.cell(0, 5, "FIRMA DEL PROVEEDOR / GENERADOR", align="C")
 
     def generate_pdf(self, data_list):
-        # Esta es la función iteradora
-        # Por cada diccionario en tu lista, llama a page_body() y crea una página
         for data in data_list:
-            # self.fill_data(data)
             self.page_body(data)
         
-        # Una vez que termina el bucle, exporta el documento completo
         return self.output()

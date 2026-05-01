@@ -81,6 +81,52 @@ export async function postData(route: string, data: any) {
     }
 }
 
+export async function postImage(providerId: number, route: string, image: File | null) {
+  try{
+    const baseUrl = 'http://localhost:8000/api/'
+    const url = baseUrl + route;
+    const data = new FormData();
+    if (image) {
+      data.append('provider_id', providerId.toString());
+      data.append('signature', image);
+    }
+    const fetchOptions: RequestInit = {
+      method: 'POST',
+      body: data,
+    };
+    const response = await fetch(url, fetchOptions);
+    const result = await response.json();
+
+    return result;
+  }catch (error) {
+    console.error('Error al conectar con el backend:', error);
+    return false;
+  }
+}
+
+export async function patchImage(providerId: number, route: string, image: File | null) {
+  try{
+    const baseUrl = 'http://localhost:8000/api/'
+    const url = baseUrl + route;
+    const data = new FormData();
+    if (image) {
+      data.append('provider_id', providerId.toString());
+      data.append('signature', image);
+    }
+    const fetchOptions: RequestInit = {
+      method: 'PATCH',
+      body: data,
+    };
+    const response = await fetch(url, fetchOptions);
+    const result = await response.json();
+
+    return result;
+  }catch (error) {
+    console.error('Error al conectar con el backend:', error);
+    return false;
+  }
+}
+
 export async function patchData(route: string, data: any) {
   try {    
     const baseUrl = 'http://localhost:8000/api/'

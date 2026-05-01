@@ -11,9 +11,16 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# La URL pública base para las imágenes (debe empezar y terminar con /)
+MEDIA_URL = '/images/'
+
+# La ruta física real en tu computadora
+# Esto apuntará a: tu_proyecto/reports_manager/images
+MEDIA_ROOT = os.path.join(BASE_DIR, "reports_manager", "images")
 
 
 # Quick-start development settings - unsuitable for production

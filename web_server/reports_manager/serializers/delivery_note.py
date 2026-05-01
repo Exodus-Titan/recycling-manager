@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from ..models import DeliveryNote
+from .delivery_note_item import DeliveryNoteItemSerializer
 
 class DeliveryNoteSerializer(serializers.ModelSerializer):
     ticket_display = serializers.SerializerMethodField()
@@ -7,12 +8,13 @@ class DeliveryNoteSerializer(serializers.ModelSerializer):
     creation_date = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
     startdate = serializers.DateTimeField(format="%Y-%m-%d")
     enddate = serializers.DateTimeField(format="%Y-%m-%d")
+    items = DeliveryNoteItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = DeliveryNote
-        fields = ('id','company', 'ticket', 'provider', 'truck_brand', 'truck_model', 'truck_plate', 'truck_color',
+        fields = ('id', 'delivery_note_number', 'company', 'ticket', 'provider', 'truck_brand', 'truck_model', 'truck_plate', 'truck_color',
                   'start_address', 'start_city', 'start_state', 'end_address', 'end_city', 'end_state', 'creation_date', 'startdate', 'enddate',
-                  'provider_name', 'ticket_display')
+                  'provider_name', 'ticket_display', 'items')
         read_only_fields = ('creation_date',)
 
     def get_ticket_display(self, obj):

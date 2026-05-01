@@ -7,6 +7,8 @@ import { FormInput } from '@/app/components/ui/text_form';
 import { FormSelect } from '@/app/components/ui/selector_form';
 import { AddButton } from '@/app/components/ui/add_button';
 import { useRouter } from 'next/navigation';
+import { TicketItemRow } from '../../../components/ui/ticket-item-row';
+import { Plus } from 'lucide-react';
 
 export default function AddDeliveryNotePage() {
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function AddDeliveryNotePage() {
   const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]); // Solo del proveedor
   const [addresses, setAddresses] = useState<any[]>([]); // Direcciones del proveedor
   const [endAddresses, setEndAddresses] = useState<any[]>([]); // Direcciones de destino
+  const [materials, setMaterials] = useState([]);
+  const [items, setItems] = useState([{ material: '', amount: '', unit_type: 'KG' }]);
 
   // Estados para la lógica del formulario
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -46,9 +50,10 @@ export default function AddDeliveryNotePage() {
   useEffect(() => {
     Promise.all([
         fetchData('providers/'),
-        fetchData('origin-addresses/get_addresses/')
+        fetchData('origin-addresses/get_addresses/'),
+        fetchData('materials/')
         // fetchData('tickets/get_tickets_without_delivery_note/')
-    ]).then(([provs, addresses]) => {
+    ]).then(([provs, addresses, mats]) => {
         // Para Proveedores:
         setProviders(provs.map((p: any) => ({
         id: p.id,
@@ -60,6 +65,8 @@ export default function AddDeliveryNotePage() {
           name: a.address,
           fullData: a
         })));
+
+        setMaterials(mats);
 
         // Para Tickets: Mapeamos ticket_number a 'name'
         // const formattedTickets = ticks.map((t: any) => ({
@@ -124,6 +131,18 @@ export default function AddDeliveryNotePage() {
     }
   };
 
+  const handleItemChange = (index: number, field: string, value: string) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const addItem = () => setItems([...items, { material: '', amount: '', unit_type: 'KG' }]);
+  
+  const removeItem = (index: number) => {
+    if (items.length > 1) setItems(items.filter((_, i) => i !== index));
+  };
+
   const handleStartAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const addressId = e.target.value;
     const address = addresses.find((a: any) => a.id === parseInt(addressId));
@@ -165,7 +184,16 @@ export default function AddDeliveryNotePage() {
     setLoading(true);
     
     const formData = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(formData.entries());
+    const rawData = Object.fromEntries(formData.entries());
+
+    const payload: any = {};
+    for (const key in rawData) {
+      if (!key.startsWith('item_')) {
+        payload[key] = rawData[key];
+      }
+    }
+
+    payload.items = items;
 
     try {
       const result = await postData('delivery-notes/save_delivery_note/', payload);
@@ -187,6 +215,8 @@ export default function AddDeliveryNotePage() {
           {/* SECCIÓN 1: RELACIONES PRINCIPALES */}
           <div className="bg-card p-6 rounded-lg border border-border grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* <FormSelect label="Ticket" name="ticket" data={tickets} required /> */}
+
+            <FormInput label="Número de Nota de Entrega" name="delivery_note_number" required  />
             
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium">Proveedor</label>
@@ -229,6 +259,28 @@ export default function AddDeliveryNotePage() {
                 <FormInput label="Modelo" name="truck_model" value={vehicleData.truck_model} readOnly />
                 <FormInput label="Placa" name="truck_plate" value={vehicleData.truck_plate} readOnly />
                 <FormInput label="Color" name="truck_color" value={vehicleData.truck_color} readOnly />
+            </div>
+          </div>
+
+          <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-2">
+              <h2 className="text-xl font-semibold">Desglose de Materiales</h2>
+              <button type="button" onClick={addItem} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm transition-all shadow-lg">
+                <Plus size={18} /> Añadir Fila
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <TicketItemRow 
+                  key={index}
+                  index={index}
+                  item={item}
+                  materials={materials}
+                  onChange={handleItemChange}
+                  onRemove={removeItem}
+                />
+              ))}
             </div>
           </div>
 

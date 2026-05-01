@@ -9,5 +9,5 @@ from .guide import Guide
 from .affidavit import Affidavit
 from .delivery_notes import DeliveryNote
 from .origin_address import OriginAddress   
-
-
+from .delivery_note_item import DeliveryNoteItem
+from .vehicle_photo import VehiclePhoto

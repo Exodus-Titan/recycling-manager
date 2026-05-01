@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from ..models import DeliveryNote, Company, Ticket, Provider
 from ..serializers import DeliveryNoteSerializer
 from ..exports.delivery_note_to_pdf import PDF
+from .delivery_note_item import DeliveryNoteItemViewSet
 
 class DeliveryNoteViewSet(viewsets.ModelViewSet):
     queryset = DeliveryNote.objects.all()
@@ -42,6 +43,7 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
     def save_delivery_note(self, request):
         try:
             data = request.data
+            items_data = data.pop('items', [])
             self.validate_delivery_note_data(data)
 
             # Obtenemos instancias relacionadas
@@ -65,8 +67,13 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
                 end_city=data.get('end_city'),
                 end_state=data.get('end_state'),
                 startdate=data.get('startdate'),
-                enddate=data.get('enddate')
+                enddate=data.get('enddate'),
+                delivery_note_number=data.get('delivery_note_number')
             )
+
+            item_service = DeliveryNoteItemViewSet()
+            item_service.process_delivery_note_items(delivery_note, items_data)
+
 
             return JsonResponse({
                 'message': 'Nota de entrega creada con éxito',
@@ -95,6 +102,9 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
             note = DeliveryNote.objects.get(id=pk)
             data = request.data
             self.validate_delivery_note_data(data)
+            items_data = data.pop('items', [])
+            print("Datos recibidos para update:", data)  # Debug: Verificar datos de la nota
+
 
             # Actualizamos campos
             if data.get('ticket'):
@@ -112,8 +122,13 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
             note.end_state = data.get('end_state')
             note.startdate = data.get('startdate')
             note.enddate = data.get('enddate')
+            note.delivery_note_number = data.get('delivery_note_number')
             
             note.save()
+
+            item_service = DeliveryNoteItemViewSet()
+            print("Items data recibida en update:", items_data)  # Debug: Verificar datos de ítems
+            item_service.process_delivery_note_items(note, items_data)
 
             return JsonResponse({'message': 'Nota de entrega actualizada con éxito'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -122,6 +137,8 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'], url_path='delete')
     def delete_delivery_note(self, request, pk=None):
         try:
+            item_service = DeliveryNoteItemViewSet()
+            item_service.delete_all_items_of_delivery_note(pk)
             note = DeliveryNote.objects.get(id=pk)
             note.delete()
             return JsonResponse({'message': 'Nota de entrega eliminada con éxito'}, status=status.HTTP_200_OK)
@@ -160,9 +177,42 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
             provider_address = f"{delivery_note.start_address}, {delivery_note.start_city}, {delivery_note.start_state}"
             receptor_address = f"{delivery_note.end_address}, {delivery_note.end_city}, {delivery_note.end_state}"
             #temporalmente va a ser un string, porque los items vienen con el ticket, hay q poner un campo para los mats e igual con los tipos
-            materials = 'Placeholder de materiales'
-            quantity = 'Placeholder de cantidad'
-            material_type = 'Placeholder de tipo de material'
+            
+            # --- PROCESAMIENTO DE LOS ITEMS ---
+            items = delivery_note.items.all()
+            
+            nombres_materiales = []
+            descripciones_materiales = []
+            total_kg = 0
+            total_pz = 0
+            
+            for item in items:
+                # Agregamos nombres y descripciones a sus listas
+                nombres_materiales.append(item.material.name)
+                # Nota: Asegúrate de que tu modelo Material tenga un campo 'description'
+                descripciones_materiales.append(getattr(item.material, 'description', 'Sin descripción'))
+                
+                # Sumamos las cantidades según el tipo
+                if item.unit_type == 'KG':
+                    total_kg += item.amount
+                elif item.unit_type == 'PZ':
+                    total_pz += item.amount
+
+            # Concatenamos los strings separados por coma
+            materials = ", ".join(nombres_materiales)
+            material_type = ", ".join(descripciones_materiales)
+            
+            # Construimos el string de cantidades (ej: "100KG\n12PZ")
+            # Usamos el formato :g para quitar los ceros decimales innecesarios (ej: 100.00 -> 100)
+            quantity_lines = []
+            if total_kg > 0:
+                quantity_lines.append(f"{total_kg:g}KG")
+            if total_pz > 0:
+                quantity_lines.append(f"{total_pz:g}PZ")
+                
+            quantity = "\n".join(quantity_lines) if quantity_lines else "0"
+            # ----------------------------------
+
             provider = Provider.objects.get(id=delivery_note.provider.id)
             
             data = {
@@ -174,7 +224,8 @@ class DeliveryNoteViewSet(viewsets.ModelViewSet):
                 'material_type': material_type,
                 'receptor_name': delivery_note.company.name,
                 'receptor_id_number': delivery_note.company.company_id_number,
-                'receptor_address': receptor_address
+                'receptor_address': receptor_address,
+                'signature_path': provider.signature.path if provider.signature else None
             }
             result.append(data)
         

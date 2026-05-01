@@ -26,7 +26,7 @@ export function TicketItemRow({ index, item, materials, onChange, onRemove }: Pr
           label="Material" 
           name={`item_mat_${index}`}
           data={materials}
-          value={item.material}
+          defaultValue={item.material}
           onChange={(e) => onChange(index, 'material', e.target.value)}
           required
         />
@@ -38,7 +38,7 @@ export function TicketItemRow({ index, item, materials, onChange, onRemove }: Pr
           name={`item_amt_${index}`}
           type="number"
           step="0.01"
-          value={item.amount}
+          defaultValue={item.amount}
           onChange={(e) => onChange(index, 'amount', e.target.value)}
           required
         />
@@ -48,7 +48,7 @@ export function TicketItemRow({ index, item, materials, onChange, onRemove }: Pr
         <label className="block text-sm font-medium mb-1">Unidad</label>
         <select 
           className="w-full bg-background border border-border rounded p-2 text-black h-[42px] focus:ring-2 focus:ring-blue-500 outline-none"
-          value={item.unit_type}
+          defaultValue={item.unit_type}
           onChange={(e) => onChange(index, 'unit_type', e.target.value)}
         >
           <option value="KG">Kilogramos</option>

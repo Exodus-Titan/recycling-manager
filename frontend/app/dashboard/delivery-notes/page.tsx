@@ -35,7 +35,7 @@ export default async function TableExamplePage() {
           </div>
         </div>
         <div>
-          <ExportPDF ids={[1,2]}>
+          <ExportPDF ids={[3]}>
               Exportar PDF
           </ExportPDF>
         </div>
