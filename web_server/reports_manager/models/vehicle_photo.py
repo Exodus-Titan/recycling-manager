@@ -6,7 +6,7 @@ from .provider import Provider
 class VehiclePhoto(models.Model):
 
     def vehicle_photos_path(instance, filename):
-        return f'images/{instance.vehicle.provider.id}/vehicles/{instance.vehicle.id}/photos/{filename}'
+        return f'providers/{instance.vehicle.provider.id}/vehicles/{instance.vehicle.id}/photos/{filename}'
 
     # Con related_name='photos', podrás hacer: mi_vehiculo.photos.all()
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='photos')

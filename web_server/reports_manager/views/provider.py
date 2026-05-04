@@ -94,7 +94,6 @@ class ProviderViewSet(viewsets.ModelViewSet):
     def get_signature(self, request, pk=None):
         try:
             provider = Provider.objects.get(id=pk)
-            print(provider.signature.url if provider.signature else "No hay firma")  # Debug: Verificar la URL de la firma
             return JsonResponse({'signature_url': provider.signature.url if provider.signature else None}, status=status.HTTP_200_OK)
         except Provider.DoesNotExist:
             return JsonResponse({'error': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)

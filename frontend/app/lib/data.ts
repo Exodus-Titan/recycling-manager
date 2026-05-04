@@ -148,6 +148,36 @@ export async function patchData(route: string, data: any) {
     }
 }
 
+
+export async function postFormData(route: string, formData: FormData) {
+  try {
+    const baseUrl = 'http://localhost:8000/api/';
+    const response = await fetch(baseUrl + route, {
+      method: 'POST',
+      body: formData,
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error al conectar con el backend:', error);
+    return false;
+  }
+}
+
+
+export async function patchFormData(route: string, formData: FormData) {
+  try {
+    const baseUrl = 'http://localhost:8000/api/';
+    const response = await fetch(baseUrl + route, {
+      method: 'PATCH',
+      body: formData,
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error al conectar con el backend:', error);
+    return false;
+  }
+}
+
 export async function deleteData(route: string) {
   try {    
     const baseUrl = 'http://localhost:8000/api/'

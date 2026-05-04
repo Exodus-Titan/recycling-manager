@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { lusitana } from "@/app/ui/fonts"
-import { fetchData, postData } from "@/app/lib/data"
+import { fetchData, postData, postFormData } from "@/app/lib/data"
 import { Words_diccionary } from "@/app/lib/diccionary";
 import { FormInput } from '@/app/components/ui/text_form';
 import { AddButton } from '@/app/components/ui/add_button';
 import { useRouter } from 'next/navigation';
 import { FormCheckbox } from '@/app/components/ui/checkbox_form';
 import { FormSelect } from '@/app/components/ui/selector_form';
+import Form from '@/app/ui/invoices/create-form';
 
 
 export default function AddProviderPage() {
@@ -34,17 +35,16 @@ export default function AddProviderPage() {
     
     // Convertimos todos los campos del form en un objeto JSON
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const licensePlatePhoto = formData.get('license_plate_photo') as File;
 
     try{
-      const result = await postData('vehicles/save_vehicle/', data);
+      const result = await postFormData('vehicles/save_vehicle/', formData);
       if (result) {
         if (result.error) {
           setError(result.error);
           console.error('Error del backend:', result.error);
           return;
         }else{
-          console.log('Proveedor guardado exitosamente:', result);
           router.push('/dashboard/providers/vehicles');
         }
       } else {
@@ -123,6 +123,36 @@ export default function AddProviderPage() {
             label="¿Es el vehículo principal del proveedor?" 
             name="is_main"
         />
+
+        <div className="border-t border-border pt-4 mt-4 space-y-4">
+          <h2 className="text-lg font-semibold text-blue-400">Fotos</h2>
+
+          {/* FOTO DE LA PLACA (Única) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Foto de la Placa (Obligatoria)</label>
+            <input 
+              type="file" 
+              name="license_plate_photo" 
+              accept="image/*" 
+              required
+              className="bg-background border border-border rounded-md p-2 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+            />
+          </div>
+
+          {/* FOTOS DEL VEHÍCULO (Múltiples) */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium">Fotos del Vehículo (Múltiples, Opcional)</label>
+            <input 
+              type="file" 
+              name="vehicle_photos" 
+              accept="image/*" 
+              multiple // <--- ESTO PERMITE SELECCIONAR VARIAS FOTOS
+              className="bg-background border border-border rounded-md p-2 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 cursor-pointer"
+            />
+            <p className="text-xs text-gray-500">Puedes seleccionar más de una foto manteniendo presionada la tecla Ctrl/Cmd.</p>
+          </div>
+        </div>
+        {/* ------------------------ */}
 
 
         <div className="flex justify-end pt-4">

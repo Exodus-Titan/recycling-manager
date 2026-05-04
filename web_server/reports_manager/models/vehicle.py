@@ -6,7 +6,7 @@ from .provider import Provider
 class Vehicle(models.Model):
 
     def license_plate_photo_path(instance, filename):
-        return f'images/{instance.provider.id}/vehicles/{instance.id}/licence_plate/{filename}'
+        return f'providers/{instance.provider.id}/vehicles/{instance.id}/licence_plate/{filename}'
 
     brand = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
