@@ -9,7 +9,7 @@ class TicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = ('id','ticket_number', 'date', 'employee_name', 'total_weight', 'installment_amount', 'items', 'provider', 'provider_name')
+        fields = ('id','ticket_number', 'date', 'employee_name', 'installment_amount', 'items', 'provider', 'provider_name', 'status')
         read_only_fields = ('creation_date',)
 
     def get_provider_name(self, obj):

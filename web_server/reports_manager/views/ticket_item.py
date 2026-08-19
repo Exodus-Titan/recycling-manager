@@ -38,12 +38,29 @@ class TicketItemViewSet(viewsets.ModelViewSet):
         """
         incoming_ids = [item.get('id') for item in items_data if item.get('id')]
 
+        print("IDs entrantes:", incoming_ids)  # Debug: Verificar IDs entrantes
+
         # 1. Borrado: Eliminar ítems que no están en el nuevo payload (solo al editar)
         ticket.items.exclude(id__in=incoming_ids).delete()
 
         # 2. Guardar/Editar:
         for item_data in items_data:
             self.validate_item_data(item_data)
+
+            if not item_data.get('id'):
+                item_id = item_data.get('id')
+                material_id = item_data.get('material')
+                
+                # Update or Create
+                TicketItem.objects.update_or_create(
+                    id=item_id,
+                    report=ticket,
+                    defaults={
+                        'material_id': material_id,
+                        'amount': item_data.get('amount'),
+                        'unit_type': item_data.get('unit_type')
+                    }
+                )
             
             item_id = item_data.get('id')
             material_id = item_data.get('material')

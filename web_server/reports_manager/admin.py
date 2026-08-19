@@ -9,7 +9,7 @@ class ItemTicketInline(admin.TabularInline):
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     inlines = [ItemTicketInline]
-    list_display = ('ticket_number', 'provider', 'date', 'total_weight')
+    list_display = ('ticket_number', 'provider', 'date')
 
 # Registros simples
 admin.site.register(Material)

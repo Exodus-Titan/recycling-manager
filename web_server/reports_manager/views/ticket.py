@@ -22,7 +22,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         try:
             data = request.data 
             items_data = data.pop('items', [])
-            
+
+            ticket_image = request.FILES.get('photo')
+            if ticket_image:
+                data['photo'] = ticket_image
             
             # Validación de datos antes de crear
             self.validate_ticket_data(data)
@@ -35,12 +38,16 @@ class TicketViewSet(viewsets.ModelViewSet):
                 #client_name=data.get('client_name'),
                 provider=provider,
                 employee_name=data.get('employee_name'),
-                total_weight=data.get('total_weight'),
                 installment_amount=data.get('installment_amount')
             )
 
+            img_name = ticket.ticket_number + '_' + str(ticket.id) + '.jpg'
+            ticket.photo.save(img_name, ticket_image)
+
             item_service = TicketItemViewSet()
             item_service.process_ticket_items(ticket, items_data)
+
+            print('guardo los items')
 
             return JsonResponse({
                 'message': 'Ticket guardado exitosamente',
@@ -50,6 +57,18 @@ class TicketViewSet(viewsets.ModelViewSet):
         except Exception as e:
             message = e.detail[0] if hasattr(e, 'detail') else str(e)
             return JsonResponse({'error': message}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=['get'], url_path='get_ticket_photo')
+    def get_ticket_photo(self, request, pk=None):
+        try:
+            ticket = Ticket.objects.get(id=pk)
+            if ticket.photo:
+                photo_url = request.build_absolute_uri(ticket.photo.url)
+                return JsonResponse({'photo_url': photo_url}, status=status.HTTP_200_OK)
+            else:
+                return JsonResponse({'error': 'No se encontró una foto para este ticket'}, status=status.HTTP_404_NOT_FOUND)
+        except Ticket.DoesNotExist:
+            return JsonResponse({'error': 'Ticket no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
     @csrf_exempt
     @action(detail=True, methods=['get'], url_path='get_ticket_by_id')
@@ -69,8 +88,10 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket = Ticket.objects.get(id=pk)
             data = request.data
             items_data = data.pop('items', [])
+            ticket_image = request.FILES.get('photo')
+            if ticket_image:
+                data['photo'] = ticket_image
 
-            print(items_data)
             
             self.validate_ticket_data(data, ticket_id=ticket.id)
 
@@ -82,8 +103,9 @@ class TicketViewSet(viewsets.ModelViewSet):
                 #ticket.client_name = data.get('client_name', ticket.client_name)
                 ticket.provider = provider
                 ticket.employee_name = data.get('employee_name', ticket.employee_name)
-                ticket.total_weight = data.get('total_weight', ticket.total_weight)
                 ticket.installment_amount = data.get('installment_amount', ticket.installment_amount)
+                img_name = ticket.ticket_number + '_' + str(ticket.id) + '.jpg'
+                ticket.photo.save(img_name, ticket_image)
                 ticket.save()
 
                 item_service = TicketItemViewSet()
@@ -143,9 +165,10 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     def validate_ticket_data(self, data, ticket_id=None):
         ticket_number = data.get('ticket_number')
-        total_weight = data.get('total_weight')
         installment_amount = data.get('installment_amount')
         provider = data.get('provider')
+        status = data.get('status')
+        photo = data.get('photo')
 
         try:
             Provider.objects.get(id=provider)
@@ -158,6 +181,12 @@ class TicketViewSet(viewsets.ModelViewSet):
         
         if not data.get('date'):
             raise ValidationError('La fecha es requerida.')
+        
+        if not status or status not in ['Pendiente', 'Pagado', 'Anulado']:
+            raise ValidationError('El estado del ticket es inválido. Debe ser Pendiente, Pagado o Anulado.')
+    
+        if not photo:
+            raise ValidationError('La foto del ticket es requerida.')
 
         # 2. Validación de unicidad del número de ticket
         query = Ticket.objects.filter(ticket_number=ticket_number)
@@ -168,8 +197,6 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         # 3. Validación de valores numéricos
         try:
-            if float(total_weight) <= 0:
-                raise ValidationError('El peso total debe ser mayor a 0.')
             if float(installment_amount) < 0:
                 raise ValidationError('El monto no puede ser negativo.')
         except (TypeError, ValueError):

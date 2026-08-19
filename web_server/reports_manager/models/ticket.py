@@ -6,7 +6,7 @@ from .provider import Provider
 class Ticket(models.Model):
 
     def ticket_photo_path(instance, filename):
-        return f'images/tickets/{instance.id}/photo/{filename}'
+        return f'tickets/{instance.id}/photo/{filename}'
 
     """
     Representa la cabecera de la Nota de Recibo.
@@ -22,9 +22,15 @@ class Ticket(models.Model):
     photo = models.ImageField(upload_to=ticket_photo_path, null=True, blank=True)
     
     # Datos de totales al pie de la nota
-    total_weight = models.DecimalField(max_digits=10, decimal_places=2, help_text="Suma total de pesos")
-    installment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    installment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True, blank=True)
     #Abono
+
+    STATUS_CHOICES = [
+        ('Pendiente', 'Pendiente'),
+        ('Pagado', 'Pagado'),
+        ('Anulado', 'Anulado'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pendiente')
 
     # Metadatos para control
     creation_date = models.DateTimeField(auto_now_add=True)
